@@ -1,0 +1,82 @@
+@startuml escalabilidad-horizontal
+title Escenario propuesto de escalabilidad horizontal (10 000 usuarios concurrentes) - NO desplegado ni probado
+
+skinparam backgroundColor #FFFFFF
+skinparam defaultTextAlignment center
+skinparam roundcorner 8
+skinparam shadowing false
+skinparam nodesep 40
+skinparam ranksep 50
+
+skinparam rectangle {
+  BackgroundColor<<lb>> #F4A300
+  FontColor<<lb>> #202020
+  BorderColor<<lb>> #A66E00
+
+  BackgroundColor<<backend>> #1168BD
+  FontColor<<backend>> #FFFFFF
+  BorderColor<<backend>> #0B4884
+
+  BackgroundColor<<cache>> #C0392B
+  FontColor<<cache>> #FFFFFF
+  BorderColor<<cache>> #7B241C
+
+  BackgroundColor<<db>> #2E7D32
+  FontColor<<db>> #FFFFFF
+  BorderColor<<db>> #1B5E20
+
+  BackgroundColor<<frontend>> #6C3483
+  FontColor<<frontend>> #FFFFFF
+  BorderColor<<frontend>> #4A235A
+}
+
+actor "Usuarios\n(hasta 10 000\nconcurrentes)" as usuarios
+
+rectangle "CDN / Servidor estático\n\nSirve el build de\nAngular 17+" as frontend <<frontend>>
+
+rectangle "NGINX\n<<Load Balancer>>\n\nDistribuye peticiones\n(round-robin / least-conn)\nSPOF si no está duplicado" as lb <<lb>>
+
+rectangle "Backend Spring Boot\nInstancia 1\n\nStateless (JWT)" as be1 <<backend>>
+rectangle "Backend Spring Boot\nInstancia 2\n\nStateless (JWT)" as be2 <<backend>>
+rectangle "Backend Spring Boot\nInstancia N\n\nStateless (JWT)" as beN <<backend>>
+
+rectangle "Redis 7\n(compartido)\n\nCaché cache-aside +\nblacklist de JTI" as redis <<cache>>
+
+rectangle "PostgreSQL 16\nPrimario\n\nEscrituras" as pgPrimary <<db>>
+rectangle "PostgreSQL 16\nRéplica de lectura\n\nLecturas (asíncrono)" as pgReplica <<db>>
+
+usuarios --> frontend : HTTPS
+usuarios --> lb : HTTPS (llamadas a la API)
+
+lb --> be1
+lb --> be2
+lb --> beN
+
+be1 --> redis
+be2 --> redis
+beN --> redis
+
+be1 --> pgPrimary : escrituras
+be2 --> pgPrimary : escrituras
+beN --> pgPrimary : escrituras
+
+be1 ..> pgReplica : lecturas (opcional)
+be2 ..> pgReplica : lecturas (opcional)
+beN ..> pgReplica : lecturas (opcional)
+
+pgPrimary -[#2E7D32]-> pgReplica : streaming replication\n(asíncrona)
+
+legend right
+  |= Color |= Elemento |
+  | <back:#F4A300>   </back> | Balanceador de carga |
+  | <back:#1168BD>   </back> | Backend (stateless, sin sticky sessions) |
+  | <back:#C0392B>   </back> | Redis compartido |
+  | <back:#2E7D32>   </back> | PostgreSQL |
+  | <back:#6C3483>   </back> | Frontend estático |
+  --
+  Escenario propuesto para justificar la
+  escalabilidad; el despliegue real del PFC
+  corre en una sola instancia (ver ADR-001).
+endlegend
+
+@enduml
