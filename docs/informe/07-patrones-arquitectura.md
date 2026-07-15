@@ -1,6 +1,5 @@
 # Patrones de arquitectura para aplicaciones web escalables
 
-**Autor:** Fajardo Montes Michael Xavier
 **Equipo:** Equipo H
 **Proyecto:** Java 21 + Spring Boot 3.x + Angular 17+ + PostgreSQL 16 + Redis
 
@@ -44,7 +43,7 @@ Frente al modelo REST síncrono, donde el cliente espera una respuesta inmediata
 
 ## 5. Modelo C4
 
-El modelo C4, propuesto por Simon Brown, documenta la arquitectura de software en cuatro niveles de abstracción progresiva: el **nivel 1 (Contexto)** muestra el sistema como una caja negra y sus actores externos; el **nivel 2 (Contenedores)** descompone el sistema en las aplicaciones y almacenes de datos desplegables que lo componen (frontend, backend, base de datos, caché); el **nivel 3 (Componentes)** detalla los módulos internos de un contenedor específico y sus responsabilidades; y el **nivel 4 (Código)** desciende al detalle de clases, aplicable solo cuando se requiere documentación exhaustiva de implementación. Este PFC utiliza los tres primeros niveles, suficientes para comunicar la arquitectura sin caer en el detalle de código que cambia con frecuencia.
+El modelo C4, propuesto por Simon Brown (Brown, n.d.), documenta la arquitectura de software en cuatro niveles de abstracción progresiva: el nivel 1 (Contexto) muestra el sistema como una caja negra y sus actores externos; el nivel 2 (Contenedores) descompone el sistema en las aplicaciones y almacenes de datos desplegables que lo componen (frontend, backend, base de datos, caché); el nivel 3 (Componentes) detalla los módulos internos de un contenedor específico y sus responsabilidades; y el nivel 4 (Código) desciende al detalle de clases, aplicable solo cuando se requiere documentación exhaustiva de implementación. Este PFC utiliza los tres primeros niveles, suficientes para comunicar la arquitectura sin caer en el detalle de código que cambia con frecuencia.
 
 ## 6. ADR: documentar el razonamiento, no solo el resultado
 
@@ -60,4 +59,4 @@ Purohit, T. (2024). Microservices vs. monolithic architectures: A comparative an
 
 Thampi, S. M. (2009). *Introduction to distributed systems*. arXiv. https://arxiv.org/abs/0911.4395
 
-Brown, S. (s.f.). *The C4 model for visualising software architecture*. c4model.com. https://c4model.com
+Brown, S. (n.d.). *The C4 model for visualising software architecture*. c4model.com. https://c4model.com
