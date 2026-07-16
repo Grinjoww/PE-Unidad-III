@@ -2,6 +2,7 @@ package com.biopet;
 
 import com.biopet.entity.Rol;
 import com.biopet.entity.Usuario;
+import com.biopet.repository.MascotaRepository;
 import com.biopet.repository.UsuarioRepository;
 import com.biopet.security.TokenBlacklistService;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -34,6 +35,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class AuthControllerTest {
     @Autowired MockMvc mockMvc;
     @Autowired UsuarioRepository usuarioRepository;
+    @Autowired MascotaRepository mascotaRepository;
     @Autowired PasswordEncoder passwordEncoder;
     @Autowired ObjectMapper objectMapper;
 
@@ -43,7 +45,8 @@ class AuthControllerTest {
 
     @BeforeEach
     void setUp() {
-        usuarioRepository.deleteAll();
+        mascotaRepository.deleteAllInBatch();
+        usuarioRepository.deleteAllInBatch();
         Usuario usuario = Usuario.builder()
                 .nombre("Jaime Mariscal")
                 .email("jaime@biopet.com")

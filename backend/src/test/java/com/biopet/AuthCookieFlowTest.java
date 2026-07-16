@@ -2,6 +2,7 @@ package com.biopet;
 
 import com.biopet.entity.Rol;
 import com.biopet.entity.Usuario;
+import com.biopet.repository.MascotaRepository;
 import com.biopet.repository.UsuarioRepository;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -56,6 +57,7 @@ class AuthCookieFlowTest {
 
     @Autowired MockMvc mockMvc;
     @Autowired UsuarioRepository usuarioRepository;
+    @Autowired MascotaRepository mascotaRepository;
     @Autowired PasswordEncoder passwordEncoder;
     @Autowired StringRedisTemplate redisTemplate;
 
@@ -64,7 +66,8 @@ class AuthCookieFlowTest {
 
     @BeforeEach
     void setUp() {
-        usuarioRepository.deleteAll();
+        mascotaRepository.deleteAllInBatch();
+        usuarioRepository.deleteAllInBatch();
         usuarioRepository.save(Usuario.builder()
                 .nombre("Jaime Mariscal")
                 .email("jaime@biopet.com")

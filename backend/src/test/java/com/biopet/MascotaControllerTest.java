@@ -47,8 +47,8 @@ class MascotaControllerTest {
 
     @BeforeEach
     void setUp() throws Exception {
-        mascotaRepository.deleteAll();
-        usuarioRepository.deleteAll();
+        mascotaRepository.deleteAllInBatch();
+        usuarioRepository.deleteAllInBatch();
         when(tokenBlacklistService.isRevoked(anyString())).thenReturn(false);
 
         usuarioRepository.save(Usuario.builder()
