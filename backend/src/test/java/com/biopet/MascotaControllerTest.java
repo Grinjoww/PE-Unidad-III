@@ -44,6 +44,7 @@ class MascotaControllerTest {
 
     Usuario duenio;
     Cookie sesionAdmin;
+    Cookie sesionDuenio;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -67,14 +68,23 @@ class MascotaControllerTest {
                 .activo(true)
                 .build());
 
-        var loginResult = mockMvc.perform(post("/api/auth/login")
+        var loginAdmin = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"email":"admin.test@biopet.com","password":"ClaveCorrecta123*"}
                                 """))
                 .andExpect(status().isOk())
                 .andReturn();
-        sesionAdmin = loginResult.getResponse().getCookie(cookieName);
+        sesionAdmin = loginAdmin.getResponse().getCookie(cookieName);
+
+        var loginDuenio = mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email":"duenio.test@biopet.com","password":"ClaveCorrecta123*"}
+                                """))
+                .andExpect(status().isOk())
+                .andReturn();
+        sesionDuenio = loginDuenio.getResponse().getCookie(cookieName);
     }
 
     private Mascota guardarMascota(String nombre, String especie, String raza, LocalDate fechaNacimiento) {
@@ -101,6 +111,18 @@ class MascotaControllerTest {
                 .andExpect(jsonPath("$.nombre").value("Luna"))
                 .andExpect(jsonPath("$.duenioId").value(duenio.getId()))
                 .andExpect(jsonPath("$.activo").value(true));
+    }
+
+    @Test
+    void crearMascotaConRolDuenioDevuelve403() throws Exception {
+        String body = """
+                {"duenioId": %d, "nombre":"Luna","especie":"Perro","raza":"Labrador","fechaNacimiento":"2021-03-14"}
+                """.formatted(duenio.getId());
+
+        mockMvc.perform(post("/api/mascotas").cookie(sesionDuenio)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isForbidden());
     }
 
     @Test

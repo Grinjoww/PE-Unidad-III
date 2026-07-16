@@ -129,6 +129,71 @@
                     </excludes>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.12</version>
+                <configuration>
+                    <excludes>
+                        <!-- Clase de arranque: SpringApplication.run(...) nunca se invoca
+                             como main() literal en las pruebas (Spring Test carga el
+                             contexto por otra via), dejando esa unica linea siempre en 0%
+                             sin relacion con la calidad de las pruebas. -->
+                        <exclude>com/biopet/BiopetApplication.class</exclude>
+                        <!-- DTO records puramente estructurales: solo constructor
+                             canonico y accessors generados por el record, sin logica
+                             propia. PaginaResponse NO se excluye porque su metodo
+                             estatico from(Page) si contiene logica de mapeo. -->
+                        <exclude>com/biopet/dto/ApiError.class</exclude>
+                        <exclude>com/biopet/dto/AuthResponse.class</exclude>
+                        <exclude>com/biopet/dto/LoginRequest.class</exclude>
+                        <exclude>com/biopet/dto/MascotaRequest.class</exclude>
+                        <exclude>com/biopet/dto/MascotaResponse.class</exclude>
+                        <exclude>com/biopet/dto/RegistroRequest.class</exclude>
+                        <exclude>com/biopet/dto/UsuarioResponse.class</exclude>
+                        <!-- Entidades JPA puramente estructurales: accessors/builder
+                             generados por Lombok y callbacks @PrePersist/@PreUpdate que
+                             solo asignan valores por defecto, sin reglas de negocio. -->
+                        <exclude>com/biopet/entity/Mascota.class</exclude>
+                        <exclude>com/biopet/entity/Usuario.class</exclude>
+                        <exclude>com/biopet/entity/Rol.class</exclude>
+                    </excludes>
+                    <rules>
+                        <rule>
+                            <element>BUNDLE</element>
+                            <limits>
+                                <limit>
+                                    <counter>LINE</counter>
+                                    <value>COVEREDRATIO</value>
+                                    <minimum>0.70</minimum>
+                                </limit>
+                            </limits>
+                        </rule>
+                    </rules>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>prepare-agent</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>jacoco-check</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 </project>

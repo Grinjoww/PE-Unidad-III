@@ -99,6 +99,45 @@ class AuthControllerTest {
     }
 
     @Test
+    void registroExitoso() throws Exception {
+        mockMvc.perform(post("/api/auth/registro")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"nombre":"Nuevo Dueño","email":"nuevo.duenio@biopet.com","password":"ClaveSegura123*","rol":"ROLE_ADMIN"}
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.email").value("nuevo.duenio@biopet.com"))
+                .andExpect(jsonPath("$.nombre").value("Nuevo Dueño"))
+                // el registro publico siempre asigna ROLE_DUENO, sin importar lo enviado
+                .andExpect(jsonPath("$.rol").value("ROLE_DUENO"))
+                .andExpect(jsonPath("$.activo").value(true));
+
+        assertThat(usuarioRepository.existsByEmail("nuevo.duenio@biopet.com")).isTrue();
+    }
+
+    @Test
+    void logoutSinCookieNoFalla() throws Exception {
+        mockMvc.perform(post("/api/auth/logout"))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void logoutConCookieInvalidaNoFalla() throws Exception {
+        Cookie cookieInvalida = new Cookie(cookieName, "valor-que-no-es-un-jwt-valido");
+
+        mockMvc.perform(post("/api/auth/logout").cookie(cookieInvalida))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void accederAEndpointProtegidoConCookieInvalidaDevuelve401() throws Exception {
+        Cookie cookieInvalida = new Cookie(cookieName, "valor-que-no-es-un-jwt-valido");
+
+        mockMvc.perform(get("/api/usuarios/me").cookie(cookieInvalida))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void accesoSinToken() throws Exception {
         mockMvc.perform(get("/api/usuarios/me"))
                 .andExpect(status().isUnauthorized());
