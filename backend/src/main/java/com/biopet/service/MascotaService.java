@@ -6,16 +6,24 @@ import com.biopet.entity.Mascota;
 import com.biopet.entity.Usuario;
 import com.biopet.exception.RecursoNoEncontradoException;
 import com.biopet.repository.MascotaRepository;
+import com.biopet.repository.MascotaSpecifications;
 import com.biopet.repository.UsuarioRepository;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+
+import java.util.Set;
 
 @Service
 public class MascotaService {
+    private static final Set<String> ORDENAMIENTO_PERMITIDO = Set.of(
+            "id", "nombre", "especie", "raza", "fechaNacimiento", "creadoEn", "actualizadoEn"
+    );
+
     private final MascotaRepository mascotaRepository;
     private final UsuarioRepository usuarioRepository;
 
@@ -24,10 +32,20 @@ public class MascotaService {
         this.usuarioRepository = usuarioRepository;
     }
 
-    @Cacheable(value = "mascotas", key = "#pageable.pageNumber + '-' + #pageable.pageSize + '-' + #pageable.sort.toString()")
     @Transactional(readOnly = true)
-    public Page<MascotaResponse> listar(Pageable pageable) {
-        return mascotaRepository.findAllByActivoTrue(pageable).map(this::toResponse);
+    public Page<MascotaResponse> listar(String nombre, String especie, String raza, Pageable pageable) {
+        validarOrdenamiento(pageable);
+        Specification<Mascota> spec = MascotaSpecifications.activa();
+        if (StringUtils.hasText(nombre)) {
+            spec = spec.and(MascotaSpecifications.nombreContiene(nombre));
+        }
+        if (StringUtils.hasText(especie)) {
+            spec = spec.and(MascotaSpecifications.especieContiene(especie));
+        }
+        if (StringUtils.hasText(raza)) {
+            spec = spec.and(MascotaSpecifications.razaContiene(raza));
+        }
+        return mascotaRepository.findAll(spec, pageable).map(this::toResponse);
     }
 
     @Transactional(readOnly = true)
@@ -36,12 +54,9 @@ public class MascotaService {
                 .orElseThrow(() -> new RecursoNoEncontradoException("Mascota no encontrada: " + id));
     }
 
-    @CacheEvict(value = "mascotas", allEntries = true)
     @Transactional
     public MascotaResponse crear(MascotaRequest request) {
-        Usuario duenio = usuarioRepository.findById(request.duenioId())
-                .filter(Usuario::isActivo)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Dueño no encontrado: " + request.duenioId()));
+        Usuario duenio = buscarDuenio(request.duenioId());
         Mascota mascota = Mascota.builder()
                 .duenio(duenio)
                 .nombre(request.nombre())
@@ -53,14 +68,11 @@ public class MascotaService {
         return toResponse(mascotaRepository.save(mascota));
     }
 
-    @CacheEvict(value = "mascotas", allEntries = true)
     @Transactional
     public MascotaResponse actualizar(Long id, MascotaRequest request) {
         Mascota mascota = mascotaRepository.findByIdAndActivoTrue(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Mascota no encontrada: " + id));
-        Usuario duenio = usuarioRepository.findById(request.duenioId())
-                .filter(Usuario::isActivo)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Dueño no encontrado: " + request.duenioId()));
+        Usuario duenio = buscarDuenio(request.duenioId());
         mascota.setDuenio(duenio);
         mascota.setNombre(request.nombre());
         mascota.setEspecie(request.especie());
@@ -69,13 +81,26 @@ public class MascotaService {
         return toResponse(mascotaRepository.save(mascota));
     }
 
-    @CacheEvict(value = "mascotas", allEntries = true)
     @Transactional
     public void eliminar(Long id) {
         Mascota mascota = mascotaRepository.findByIdAndActivoTrue(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Mascota no encontrada: " + id));
         mascota.setActivo(false);
         mascotaRepository.save(mascota);
+    }
+
+    private Usuario buscarDuenio(Long duenioId) {
+        return usuarioRepository.findById(duenioId)
+                .filter(Usuario::isActivo)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Dueño no encontrado: " + duenioId));
+    }
+
+    private void validarOrdenamiento(Pageable pageable) {
+        for (Sort.Order order : pageable.getSort()) {
+            if (!ORDENAMIENTO_PERMITIDO.contains(order.getProperty())) {
+                throw new IllegalArgumentException("Campo de ordenamiento no permitido: " + order.getProperty());
+            }
+        }
     }
 
     private MascotaResponse toResponse(Mascota mascota) {

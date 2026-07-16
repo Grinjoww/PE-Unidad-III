@@ -11,6 +11,11 @@ spring:
     show-sql: false
   flyway:
     enabled: false
+  data:
+    web:
+      pageable:
+        default-page-size: 10
+        max-page-size: 50
   cache:
     type: simple
 
