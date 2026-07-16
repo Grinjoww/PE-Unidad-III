@@ -6,9 +6,11 @@ import com.biopet.repository.UsuarioRepository;
 import com.biopet.security.TokenBlacklistService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -17,10 +19,12 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -32,6 +36,8 @@ class AuthControllerTest {
     @Autowired UsuarioRepository usuarioRepository;
     @Autowired PasswordEncoder passwordEncoder;
     @Autowired ObjectMapper objectMapper;
+
+    @Value("${security.jwt.cookie.name}") String cookieName;
 
     @MockBean TokenBlacklistService tokenBlacklistService;
 
@@ -51,14 +57,22 @@ class AuthControllerTest {
 
     @Test
     void loginExitoso() throws Exception {
-        mockMvc.perform(post("/api/auth/login")
+        String body = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"email":"jaime@biopet.com","password":"ClaveCorrecta123*"}
                                 """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accessToken").isNotEmpty())
-                .andExpect(jsonPath("$.refreshToken").isNotEmpty());
+                .andExpect(cookie().exists(cookieName))
+                .andExpect(cookie().httpOnly(cookieName, true))
+                .andExpect(jsonPath("$.email").value("jaime@biopet.com"))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode json = objectMapper.readTree(body);
+        assertThat(json.has("accessToken")).isFalse();
+        assertThat(json.has("refreshToken")).isFalse();
     }
 
     @Test
@@ -88,22 +102,19 @@ class AuthControllerTest {
     }
 
     @Test
-    void accesoConTokenValido() throws Exception {
-        String loginResponse = mockMvc.perform(post("/api/auth/login")
+    void accesoConCookieValida() throws Exception {
+        var loginResult = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"email":"jaime@biopet.com","password":"ClaveCorrecta123*"}
                                 """))
                 .andExpect(status().isOk())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
+                .andReturn();
 
-        JsonNode json = objectMapper.readTree(loginResponse);
-        String token = json.get("accessToken").asText();
+        Cookie sessionCookie = loginResult.getResponse().getCookie(cookieName);
+        assertThat(sessionCookie).isNotNull();
 
-        mockMvc.perform(get("/api/usuarios/me")
-                        .header("Authorization", "Bearer " + token))
+        mockMvc.perform(get("/api/usuarios/me").cookie(sessionCookie))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.email").value("jaime@biopet.com"));
     }
