@@ -5,3 +5,9 @@ button { padding: 10px 16px; border: none; border-radius: 8px; background: #37c7
 input, select { padding: 10px; margin: 6px 0; width: 100%; box-sizing: border-box; border: 1px solid #cbd5e1; border-radius: 8px; }
 .card { border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; margin: 12px 0; }
 .error { color: #b91c1c; }
+.success { color: #15803d; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+.toolbar input, .toolbar select { width: auto; margin: 0; }
+.table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+.table th, .table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #e5e7eb; }
+.pagination { display: flex; gap: 12px; align-items: center; justify-content: center; margin-top: 12px; }
