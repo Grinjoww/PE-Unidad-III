@@ -18,7 +18,9 @@ security:
   jwt:
     secret: 9c8f9a7d6e5b4c3a2d1f0e9c8b7a6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c
     expiration-ms: 3600000
-    refresh-expiration-ms: 604800000
+    cookie:
+      name: BIOPET_ACCESS_TOKEN
+      secure: false
 
 app:
   cors:

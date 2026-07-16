@@ -31,7 +31,9 @@ security:
   jwt:
     secret: ${JWT_SECRET:9c8f9a7d6e5b4c3a2d1f0e9c8b7a6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c}
     expiration-ms: ${JWT_EXPIRATION_MS:3600000}
-    refresh-expiration-ms: ${JWT_REFRESH_EXPIRATION_MS:604800000}
+    cookie:
+      name: ${JWT_COOKIE_NAME:BIOPET_ACCESS_TOKEN}
+      secure: ${JWT_COOKIE_SECURE:false}
 
 app:
   cors:

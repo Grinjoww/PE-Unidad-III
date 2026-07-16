@@ -17,37 +17,25 @@ import java.util.UUID;
 public class JwtService {
     private final SecretKey key;
     private final long expirationMs;
-    private final long refreshExpirationMs;
 
     public JwtService(
             @Value("${security.jwt.secret}") String secret,
-            @Value("${security.jwt.expiration-ms}") long expirationMs,
-            @Value("${security.jwt.refresh-expiration-ms}") long refreshExpirationMs
+            @Value("${security.jwt.expiration-ms}") long expirationMs
     ) {
         if (secret.getBytes(StandardCharsets.UTF_8).length < 32) {
             throw new IllegalArgumentException("JWT_SECRET debe tener al menos 256 bits (32 bytes)");
         }
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.expirationMs = expirationMs;
-        this.refreshExpirationMs = refreshExpirationMs;
     }
 
     public String generateAccessToken(Usuario usuario) {
-        return buildToken(usuario, expirationMs, "access");
-    }
-
-    public String generateRefreshToken(Usuario usuario) {
-        return buildToken(usuario, refreshExpirationMs, "refresh");
-    }
-
-    private String buildToken(Usuario usuario, long ttlMs, String tipo) {
         Instant now = Instant.now();
-        Instant exp = now.plusMillis(ttlMs);
+        Instant exp = now.plusMillis(expirationMs);
         return Jwts.builder()
                 .subject(String.valueOf(usuario.getId()))
                 .claim("email", usuario.getEmail())
                 .claim("rol", usuario.getRol().name())
-                .claim("typ", tipo)
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(exp))
                 .id(UUID.randomUUID().toString())
@@ -73,14 +61,6 @@ public class JwtService {
 
     public Instant extractExpiration(String token) {
         return extractClaims(token).getExpiration().toInstant();
-    }
-
-    public boolean isAccessToken(String token) {
-        return "access".equals(extractClaims(token).get("typ", String.class));
-    }
-
-    public boolean isRefreshToken(String token) {
-        return "refresh".equals(extractClaims(token).get("typ", String.class));
     }
 
     public long getExpirationMs() {
