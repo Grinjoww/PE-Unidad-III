@@ -28,7 +28,7 @@ $loginBody = @{ email = $Email; password = $Password } | ConvertTo-Json
 $loginStatus = $null
 try {
     $loginResponse = Invoke-WebRequest -Uri "$BaseUrl/api/auth/login" -Method Post `
-        -Body $loginBody -ContentType "application/json" -SessionVariable session
+        -Body $loginBody -ContentType "application/json" -SessionVariable session -UseBasicParsing
     $loginStatus = [int]$loginResponse.StatusCode
     Write-Host "   Login -> HTTP $loginStatus"
 } catch {
@@ -48,7 +48,7 @@ Write-Host "   Cookie '$CookieName' recibida (HttpOnly=$($sessionCookie.HttpOnly
 Write-Host "2) Peticion a /api/auth/me con cookie valida..."
 $meStatus = $null
 try {
-    $meResponse = Invoke-WebRequest -Uri "$BaseUrl/api/auth/me" -Method Get -WebSession $session
+    $meResponse = Invoke-WebRequest -Uri "$BaseUrl/api/auth/me" -Method Get -WebSession $session -UseBasicParsing
     $meStatus = [int]$meResponse.StatusCode
 } catch {
     $meStatus = Get-StatusCode $_
@@ -58,7 +58,7 @@ Write-Host "   /api/auth/me -> HTTP $meStatus"
 Write-Host "3) Logout..."
 $logoutStatus = $null
 try {
-    $logoutResponse = Invoke-WebRequest -Uri "$BaseUrl/api/auth/logout" -Method Post -WebSession $session
+    $logoutResponse = Invoke-WebRequest -Uri "$BaseUrl/api/auth/logout" -Method Post -WebSession $session -UseBasicParsing
     $logoutStatus = [int]$logoutResponse.StatusCode
 } catch {
     $logoutStatus = Get-StatusCode $_
@@ -71,7 +71,7 @@ $replaySession = New-Object Microsoft.PowerShell.Commands.WebRequestSession
 $replaySession.Cookies.Add($oldCookie)
 $replayStatus = $null
 try {
-    $retryResponse = Invoke-WebRequest -Uri "$BaseUrl/api/auth/me" -Method Get -WebSession $replaySession
+    $retryResponse = Invoke-WebRequest -Uri "$BaseUrl/api/auth/me" -Method Get -WebSession $replaySession -UseBasicParsing
     $replayStatus = [int]$retryResponse.StatusCode
 } catch {
     $replayStatus = Get-StatusCode $_

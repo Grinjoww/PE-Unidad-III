@@ -45,7 +45,7 @@ Write-Host "2) Login ($Email)..."
 $loginBody = @{ email = $Email; password = $Password } | ConvertTo-Json
 try {
     $loginResponse = Invoke-WebRequest -Uri "$BaseUrl/api/auth/login" -Method Post `
-        -Body $loginBody -ContentType "application/json" -SessionVariable session
+        -Body $loginBody -ContentType "application/json" -SessionVariable session -UseBasicParsing
     Write-Host "   Login -> HTTP $([int]$loginResponse.StatusCode)"
 } catch {
     Write-Host "   Login -> HTTP $(Get-StatusCode $_) (fallo inesperado)"
@@ -54,13 +54,13 @@ try {
 
 Write-Host "3) Primera consulta a /api/mascotas (deberia consultar PostgreSQL)..."
 $cronometro1 = [System.Diagnostics.Stopwatch]::StartNew()
-$primera = Invoke-WebRequest -Uri "$BaseUrl/api/mascotas?page=0&size=10&sort=id,asc" -Method Get -WebSession $session
+$primera = Invoke-WebRequest -Uri "$BaseUrl/api/mascotas?page=0&size=10&sort=id,asc" -Method Get -WebSession $session -UseBasicParsing
 $cronometro1.Stop()
 Write-Host "   HTTP $([int]$primera.StatusCode) en $($cronometro1.ElapsedMilliseconds) ms"
 
 Write-Host "4) Segunda consulta identica a /api/mascotas (deberia venir de Redis)..."
 $cronometro2 = [System.Diagnostics.Stopwatch]::StartNew()
-$segunda = Invoke-WebRequest -Uri "$BaseUrl/api/mascotas?page=0&size=10&sort=id,asc" -Method Get -WebSession $session
+$segunda = Invoke-WebRequest -Uri "$BaseUrl/api/mascotas?page=0&size=10&sort=id,asc" -Method Get -WebSession $session -UseBasicParsing
 $cronometro2.Stop()
 Write-Host "   HTTP $([int]$segunda.StatusCode) en $($cronometro2.ElapsedMilliseconds) ms"
 
@@ -86,7 +86,7 @@ $crearBody = @{
 } | ConvertTo-Json
 try {
     $crear = Invoke-WebRequest -Uri "$BaseUrl/api/mascotas" -Method Post `
-        -Body $crearBody -ContentType "application/json" -WebSession $session
+        -Body $crearBody -ContentType "application/json" -WebSession $session -UseBasicParsing
     Write-Host "   Crear mascota -> HTTP $([int]$crear.StatusCode)"
 } catch {
     Write-Host "   Crear mascota -> HTTP $(Get-StatusCode $_) (revisa que duenioId=$duenioId exista)"
