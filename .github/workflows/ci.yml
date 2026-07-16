@@ -15,6 +15,6 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-      - name: Test backend
+      - name: Verify backend (tests + JaCoCo coverage >= 70% lineas)
         working-directory: backend
-        run: ./mvnw test
+        run: ./mvnw verify
