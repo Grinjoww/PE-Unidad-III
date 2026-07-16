@@ -8,12 +8,15 @@ import com.biopet.exception.RecursoNoEncontradoException;
 import com.biopet.repository.UsuarioRepository;
 import com.biopet.security.JwtService;
 import com.biopet.security.TokenBlacklistService;
+import io.jsonwebtoken.JwtException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
 
 @Service
 public class AuthService {
@@ -35,6 +38,8 @@ public class AuthService {
         this.blacklistService = blacklistService;
     }
 
+    public record LoginResult(String jwt, AuthResponse body) {}
+
     @Transactional
     public UsuarioResponse registrar(RegistroRequest request) {
         if (usuarioRepository.existsByEmail(request.email())) {
@@ -51,40 +56,32 @@ public class AuthService {
         return toResponse(guardado);
     }
 
-    public AuthResponse login(LoginRequest request) {
+    public LoginResult login(LoginRequest request) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.email().toLowerCase(), request.password())
         );
         Usuario usuario = usuarioRepository.findByEmailAndActivoTrue(authentication.getName())
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario autenticado no existe"));
-        return new AuthResponse(
-                jwtService.generateAccessToken(usuario),
-                jwtService.generateRefreshToken(usuario),
-                jwtService.getExpirationMs() / 1000
+        String jwt = jwtService.generateAccessToken(usuario);
+        AuthResponse body = new AuthResponse(
+                usuario.getId(), usuario.getNombre(), usuario.getEmail(), usuario.getRol(),
+                "Autenticacion exitosa"
         );
+        return new LoginResult(jwt, body);
     }
 
-    public AuthResponse refresh(RefreshRequest request) {
-        String refreshToken = request.refreshToken();
-        if (!jwtService.isRefreshToken(refreshToken)) {
-            throw new IllegalArgumentException("El token enviado no es un refresh token");
+    public void logout(String token) {
+        if (token == null || token.isBlank()) {
+            return;
         }
-        String email = jwtService.extractEmail(refreshToken);
-        String jti = jwtService.extractJti(refreshToken);
-        if (blacklistService.isRevoked(jti)) {
-            throw new IllegalArgumentException("Refresh token revocado");
+        try {
+            String jti = jwtService.extractJti(token);
+            if (jti != null && !jti.isBlank()) {
+                blacklistService.revoke(jti, jwtService.extractExpiration(token));
+            }
+        } catch (JwtException | IllegalArgumentException ex) {
+            // token ya invalido o expirado: nada que revocar
         }
-        Usuario usuario = usuarioRepository.findByEmailAndActivoTrue(email)
-                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
-        return new AuthResponse(jwtService.generateAccessToken(usuario), refreshToken, jwtService.getExpirationMs() / 1000);
-    }
-
-    public void logout(String bearerToken) {
-        if (bearerToken == null || !bearerToken.startsWith("Bearer ")) {
-            throw new IllegalArgumentException("Token JWT requerido");
-        }
-        String token = bearerToken.substring(7);
-        blacklistService.revoke(jwtService.extractJti(token), jwtService.extractExpiration(token));
     }
 
     public UsuarioResponse perfil(String email) {

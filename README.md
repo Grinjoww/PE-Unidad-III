@@ -95,12 +95,17 @@ docker compose up --build -d
 - Swagger UI: http://localhost:8080/api/swagger-ui.html
 - Actuator Health: http://localhost:8080/actuator/health
 
+## Autenticación (JWT en cookie HttpOnly)
+
+- `POST /api/auth/login`: valida credenciales y responde con la cookie `BIOPET_ACCESS_TOKEN` (`HttpOnly`, `Path=/`, `SameSite=Lax`, `Secure` según `JWT_COOKIE_SECURE`). El JSON solo contiene id, nombre, email, rol y mensaje — nunca el token.
+- `POST /api/auth/logout`: lee el JWT desde la cookie, guarda su `jti` en Redis (`jwt:blacklist:{jti}`) con TTL igual al tiempo restante de validez, y borra la cookie.
+- `GET /api/auth/me`: devuelve el usuario autenticado a partir de la cookie (usado por Angular para restaurar sesión tras recargar la página).
+- El frontend nunca lee `document.cookie` ni guarda el token; todas las peticiones HTTP usan `withCredentials` (centralizado en `credentialsInterceptor`).
+
 ## Requisitos técnicos pendientes (Unidad III)
 
 Lo siguiente aún no está implementado en esta sesión; queda como trabajo técnico pendiente:
 
-- JWT almacenado en cookie HttpOnly (actualmente se usa en el cuerpo de la respuesta).
-- Blacklist de JTI en Redis para logout efectivo (existe `TokenBlacklistService`, falta validar cobertura completa).
 - CRUD completo con paginación (`Pageable`), ordenamiento dinámico y filtros múltiples para todas las entidades del dominio.
 - `V3__datos_semilla.sql` con mínimo 50 registros realistas.
 - Cache-aside con `@Cacheable` y `@CacheEvict` sobre la consulta principal.
