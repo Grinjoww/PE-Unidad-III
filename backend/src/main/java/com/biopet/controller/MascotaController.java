@@ -2,9 +2,9 @@ package com.biopet.controller;
 
 import com.biopet.dto.MascotaRequest;
 import com.biopet.dto.MascotaResponse;
+import com.biopet.dto.PaginaResponse;
 import com.biopet.service.MascotaService;
 import jakarta.validation.Valid;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
@@ -23,7 +23,7 @@ public class MascotaController {
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN','VETERINARIO','AUXILIAR','DUENO')")
-    public Page<MascotaResponse> listar(
+    public PaginaResponse<MascotaResponse> listar(
             @RequestParam(required = false) String nombre,
             @RequestParam(required = false) String especie,
             @RequestParam(required = false) String raza,
