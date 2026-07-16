@@ -1,0 +1,40 @@
+﻿{
+    "fecha":  "2026-07-16T18:16:04.417-05:00",
+    "endpoint":  "/api/mascotas?page=0\u0026size=50\u0026sort=nombre,asc",
+    "parametros":  {
+                       "page":  0,
+                       "size":  50,
+                       "sort":  "nombre,asc"
+                   },
+    "entorno":  {
+                    "base_url":  "http://localhost:8080",
+                    "contenedor_postgres":  "biopet-postgres",
+                    "contenedor_redis":  "biopet-redis",
+                    "contenedor_backend":  "biopet-backend",
+                    "cache_nombre":  "mascotas-listado",
+                    "clave_observada":  "mascotas:listado:page=0:size=50:sort=nombre,asc:nombre=:especie=:raza=",
+                    "ttl_observado_seg":  300
+                },
+    "metodologia":  {
+                        "calentamientos":  5,
+                        "repeticiones":  10,
+                        "sin_cache":  "Se limpian (SCAN + DEL) todas las claves \u0027mascotas:listado:*\u0027 en Redis inmediatamente antes de cada una de las 10 peticiones, garantizando un cache miss controlado que ejecuta la consulta real contra PostgreSQL en cada repeticion.",
+                        "con_cache":  "Se limpia el cache, se ejecuta una peticion de cebado (no contada) para crear la entrada, se confirma su existencia y TTL positivo con redis-cli, y luego se ejecutan las 10 peticiones sin tocar Redis entre ellas, garantizando cache hits reales.",
+                        "metodo_p95":  "percentile.inclusive (interpolacion lineal): rank = 0.95 * (n-1) sobre los valores ordenados, interpolando entre los dos mas cercanos. Mismo metodo en ambos escenarios.",
+                        "medicion":  "System.Diagnostics.Stopwatch envolviendo unicamente la llamada Invoke-WebRequest; login, limpieza de Redis e impresion en consola quedan fuera del cronometro."
+                    },
+    "resultados":  {
+                       "mediciones_totales":  20,
+                       "sin_cache":  {
+                                         "n":  10,
+                                         "promedio_ms":  29.737,
+                                         "p95_ms":  31.271
+                                     },
+                       "con_cache":  {
+                                         "n":  10,
+                                         "promedio_ms":  22.961,
+                                         "p95_ms":  28.383
+                                     },
+                       "speedup":  1.295
+                   }
+}
