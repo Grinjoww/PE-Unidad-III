@@ -115,6 +115,40 @@ class MascotaRepositoryTest {
     }
 
     @Test
+    void mascotaSinActivoExplicitoSeGuardaComoActiva() {
+        Usuario duenio = nuevoDuenio("duenio.sinactivo@biopet.com");
+        Mascota mascota = Mascota.builder()
+                .duenio(duenio)
+                .nombre("Sin Activo Explicito")
+                .especie("Perro")
+                .raza("Mestizo")
+                .fechaNacimiento(LocalDate.of(2021, 1, 1))
+                .build();
+
+        Mascota guardada = mascotaRepository.saveAndFlush(mascota);
+
+        assertThat(guardada.isActivo()).isTrue();
+    }
+
+    @Test
+    void mascotaConActivoFalseExplicitoConservaFalseAlInsertar() {
+        Usuario duenio = nuevoDuenio("duenio.falsoinicio@biopet.com");
+        Mascota mascota = Mascota.builder()
+                .duenio(duenio)
+                .nombre("Inactiva Desde El Inicio")
+                .especie("Perro")
+                .raza("Mestizo")
+                .fechaNacimiento(LocalDate.of(2021, 1, 1))
+                .activo(false)
+                .build();
+
+        Mascota guardada = mascotaRepository.saveAndFlush(mascota);
+
+        assertThat(guardada.isActivo()).isFalse();
+        assertThat(mascotaRepository.findByIdAndActivoTrue(guardada.getId())).isEmpty();
+    }
+
+    @Test
     void listadoPaginado() {
         Usuario duenio = nuevoDuenio("duenio.paginado@biopet.com");
         for (int i = 1; i <= 5; i++) {

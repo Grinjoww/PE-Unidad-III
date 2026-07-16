@@ -48,15 +48,44 @@ class UsuarioRepositoryTest {
 
     @Test
     void findByEmailAndActivoTrueExcluyeUsuariosInactivos() {
-        // @PrePersist fuerza activo=true en la primera insercion (ver
-        // Usuario.prePersist), igual que hace el soft-delete real del
-        // dominio: se crea activo y luego se desactiva con un update.
+        // Reproduce el soft-delete real del dominio: se crea activo y luego
+        // se desactiva con un update (PreUpdate), no en la insercion inicial.
         Usuario usuario = usuarioRepository.saveAndFlush(nuevoUsuario("inactivo@biopet.com", true));
         usuario.setActivo(false);
         usuarioRepository.saveAndFlush(usuario);
 
         assertThat(usuarioRepository.findByEmail("inactivo@biopet.com")).isPresent();
         assertThat(usuarioRepository.findByEmailAndActivoTrue("inactivo@biopet.com")).isEmpty();
+    }
+
+    @Test
+    void usuarioSinActivoExplicitoSeGuardaComoActivo() {
+        Usuario usuario = Usuario.builder()
+                .nombre("Sin Activo Explicito")
+                .email("sinactivo@biopet.com")
+                .passwordHash("hash-no-usado-en-estas-pruebas")
+                .rol(Rol.ROLE_DUENO)
+                .build();
+
+        Usuario guardado = usuarioRepository.saveAndFlush(usuario);
+
+        assertThat(guardado.isActivo()).isTrue();
+    }
+
+    @Test
+    void usuarioConActivoFalseExplicitoConservaFalseAlInsertar() {
+        Usuario usuario = Usuario.builder()
+                .nombre("Inactivo Desde El Inicio")
+                .email("inactivodesdeinicio@biopet.com")
+                .passwordHash("hash-no-usado-en-estas-pruebas")
+                .rol(Rol.ROLE_DUENO)
+                .activo(false)
+                .build();
+
+        Usuario guardado = usuarioRepository.saveAndFlush(usuario);
+
+        assertThat(guardado.isActivo()).isFalse();
+        assertThat(usuarioRepository.findByEmailAndActivoTrue("inactivodesdeinicio@biopet.com")).isEmpty();
     }
 
     @Test

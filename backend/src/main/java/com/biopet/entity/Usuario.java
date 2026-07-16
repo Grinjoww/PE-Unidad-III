@@ -32,8 +32,13 @@ public class Usuario {
     @Column(nullable = false, length = 30)
     private Rol rol;
 
+    // Boolean (no boolean primitivo) para poder distinguir "no establecido"
+    // (null) de "establecido explicitamente en false" antes de la primera
+    // insercion; ver prePersist(). La columna en base de datos sigue siendo
+    // NOT NULL: prePersist garantiza que nunca llegue null al INSERT.
+    @Getter(AccessLevel.NONE)
     @Column(nullable = false)
-    private boolean activo;
+    private Boolean activo;
 
     @Column(name = "creado_en", nullable = false, updatable = false)
     private Instant creadoEn;
@@ -46,12 +51,18 @@ public class Usuario {
         Instant now = Instant.now();
         if (creadoEn == null) creadoEn = now;
         if (actualizadoEn == null) actualizadoEn = now;
-        activo = true;
+        if (activo == null) {
+            activo = true;
+        }
         if (rol == null) rol = Rol.ROLE_DUENO;
     }
 
     @PreUpdate
     void preUpdate() {
         actualizadoEn = Instant.now();
+    }
+
+    public boolean isActivo() {
+        return Boolean.TRUE.equals(activo);
     }
 }
