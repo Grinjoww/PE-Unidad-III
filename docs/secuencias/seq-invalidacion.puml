@@ -1,0 +1,61 @@
+@startuml seq-invalidacion
+title Secuencia real de BIOPET: Invalidación de caché (crear / actualizar / eliminar mascota)
+
+skinparam backgroundColor #FFFFFF
+skinparam sequenceArrowThickness 1.5
+skinparam roundcorner 6
+skinparam maxMessageSize 220
+
+skinparam participant {
+  BackgroundColor<<frontend>> #6C3483
+  FontColor<<frontend>> #FFFFFF
+  BorderColor<<frontend>> #4A235A
+
+  BackgroundColor<<backend>> #1168BD
+  FontColor<<backend>> #FFFFFF
+  BorderColor<<backend>> #0B4884
+
+  BackgroundColor<<cache>> #C0392B
+  FontColor<<cache>> #FFFFFF
+  BorderColor<<cache>> #7B241C
+
+  BackgroundColor<<db>> #2E7D32
+  FontColor<<db>> #FFFFFF
+  BorderColor<<db>> #1B5E20
+}
+
+participant "Frontend\n(Angular 17.3)" as FE <<frontend>>
+participant "MascotaService\n(Spring Boot)" as SVC <<backend>>
+participant "Redis 7\ncache: mascotas-listado" as REDIS <<cache>>
+participant "PostgreSQL 16" as DB <<db>>
+
+FE -> SVC : POST/PUT/DELETE /api/mascotas\n(crear, actualizar o eliminar)
+activate SVC
+
+SVC -> DB : INSERT / UPDATE / DELETE mascota
+activate DB
+DB --> SVC : OK
+deactivate DB
+
+SVC -> REDIS : @CacheEvict(cacheNames="mascotas-listado", allEntries=true)
+activate REDIS
+note right of REDIS
+  Se eliminan TODAS las claves
+  mascotas:listado:* de una sola vez,
+  no solo una entrada puntual.
+end note
+REDIS --> SVC : OK (todas las claves eliminadas)
+deactivate REDIS
+
+SVC --> FE : 200/201 OK
+deactivate SVC
+
+note over SVC, REDIS
+  ¿Por qué allEntries=true y no una clave específica?
+  Una misma mascota puede aparecer en distintas páginas,
+  tamaños de página, ordenamientos y filtros (nombre,
+  especie, raza) simultáneamente. Invalidar por clave
+  específica no cubriría todas esas combinaciones.
+end note
+
+@enduml
