@@ -92,7 +92,3 @@ En este PFC, el ORM se integra naturalmente en la arquitectura por capas: el `Co
 
 Fowler, M. (2002). *Patterns of enterprise application architecture*. Addison-Wesley.
 
-## Lo que falta actualizar cuando Jaime confirme evidencia final
-
-- Confirmar si finalmente se aplicó `@EntityGraph` o una proyección DTO para resolver el N+1 identificado en `MascotaService.listar(...)`, o si quedó documentado como mejora pendiente.
-- Adjuntar el log de Hibernate (`show-sql`/`format_sql`) que evidencie el número real de consultas ejecutadas al listar una página de mascotas, si se genera como parte de las pruebas.
