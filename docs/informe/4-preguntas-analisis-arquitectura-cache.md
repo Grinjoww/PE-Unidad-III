@@ -2,9 +2,9 @@
 
 ## 1. ¿El speedup obtenido justifica la complejidad operativa de Redis?
 
-*Pendiente de completar con el benchmark real de Jaime (sección 8 del documento de caché y rendimiento).*
+El benchmark real (10 repeticiones, 5 de calentamiento; ver docs/informe/benchmark-biopet.md) dio un promedio de 29.737 ms sin caché frente a 22.961 ms con caché, es decir S = T_sin / T_con = 1.295x. Este valor queda por debajo del umbral orientativo de S > 2, por lo que, medido de forma estrictamente cuantitativa, la caché no alcanza el punto en el que la mejora de rendimiento justifica por sí sola la complejidad operativa de mantener Redis.
 
-El criterio para responder esta pregunta ya está definido: se calcula S = T_sin / T_con a partir de al menos 10 mediciones por escenario, y se compara contra el umbral orientativo de S > 2. Si el speedup medido supera ese umbral, la mejora de rendimiento justifica mantener Redis como pieza de infraestructura adicional; si se queda cerca de S = 1, la complejidad operativa de operar Redis (ver pregunta 2) probablemente no se justifica para el volumen de datos y tráfico real de este PFC, que es modesto por tratarse de un proyecto académico.
+Esto es coherente con lo esperado dado el alcance del proyecto: el dataset de prueba tiene solo 58 mascotas y la consulta cacheada es una sola paginación sin joins costosos, por lo que PostgreSQL ya resuelve la consulta sin caché en muy pocos milisegundos — hay poco margen de mejora posible. En un entorno de producción con un volumen de datos y de tráfico concurrente mucho mayor (el escenario de 10 000 usuarios concurrentes descrito en la sección de escalabilidad horizontal), la brecha entre consultar PostgreSQL directamente y servir desde Redis se ampliaría, y el speedup esperado sería considerablemente mayor a 1.295x. Para este PFC académico, Redis se mantiene principalmente porque también resuelve la blacklist de JWT (un requisito funcional, no solo de rendimiento) y porque demuestra el patrón cache-aside correctamente implementado; el speedup modesto es un resultado honesto del volumen de datos de prueba, no un defecto de la implementación.
 
 ## 2. ¿Qué costos, riesgos y fallos introduce Redis?
 
@@ -19,10 +19,9 @@ El criterio para responder esta pregunta ya está definido: se calcula S = T_sin
 
 ## 3. ¿Qué claves se invalidan al crear, actualizar o eliminar?
 
-*Pendiente de confirmar con Jaime (ver ADR-003): falta definir si se usa `allEntries = true` sobre el caché completo, o invalidación por clave específica según los parámetros de cada consulta afectada.*
+Confirmado en la implementación (MascotaService.crear/actualizar/eliminar, ver ADR-003): se usa @CacheEvict(cacheNames = CacheConfig.CACHE_MASCOTAS_LISTADO, allEntries = true). Es decir, no se invalida una clave puntual — se borran de golpe todas las entradas del caché mascotas-listado, sin importar qué combinación de página, tamaño, orden o filtros tenían.
 
-Lo que sí está definido conceptualmente: cualquier operación de escritura (crear, actualizar, eliminar) sobre una entidad debe disparar `@CacheEvict` sobre las entradas de caché que dependan de esa entidad, para evitar que un listado paginado siga mostrando datos obsoletos después de la escritura.
-
+Se eligió allEntries = true en vez de invalidación por clave específica porque una misma mascota puede aparecer simultáneamente en múltiples combinaciones de página/tamaño/orden/filtros, y enumerar de antemano todas las claves afectadas por un solo cambio sería complejo y propenso a errores (una clave olvidada dejaría datos obsoletos servidos indefinidamente hasta que expire el TTL de 300 s). El costo de esta decisión es una invalidación más agresiva de lo estrictamente necesario: un cambio en una sola mascota descarta también listados que no la incluían. Para el volumen de datos de este PFC (58 mascotas, un único endpoint cacheado) ese costo es asumible; en un catálogo mucho más grande con muchas más combinaciones de filtros, valdría la pena revisar una estrategia de invalidación más selectiva (por ejemplo, agrupando por especie).
 ## 4. ¿Existe riesgo de cache stampede y cómo se mitigaría?
 
 Sí existe el riesgo, en cualquier endpoint de lectura frecuente cuya entrada de caché expire mientras hay muchas peticiones concurrentes esperando ese mismo dato (ver sección 5 del documento de caché y rendimiento). Para este PFC, dado su volumen de tráfico académico, el riesgo es bajo en la práctica, pero la mitigación teórica aplicable sería: un mutex que permita que solo una petición recalcule el valor mientras las demás esperan o reciben la versión anterior, o variar aleatoriamente el TTL (jitter) para que las entradas no expiren todas en el mismo instante.
