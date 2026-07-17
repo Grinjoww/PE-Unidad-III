@@ -1,0 +1,38 @@
+@startuml seq-write-through
+title "Flujo TEÓRICO: Write-Through (patrón NO implementado en BIOPET)"
+
+skinparam backgroundColor #FFFFFF
+skinparam sequenceArrowThickness 1.5
+skinparam roundcorner 6
+skinparam maxMessageSize 220
+
+skinparam participant {
+  BackgroundColor<<backend>> #1168BD
+  FontColor<<backend>> #FFFFFF
+  BorderColor<<backend>> #0B4884
+  BackgroundColor<<cache>> #C0392B
+  FontColor<<cache>> #FFFFFF
+  BorderColor<<cache>> #7B241C
+  BackgroundColor<<db>> #2E7D32
+  FontColor<<db>> #FFFFFF
+  BorderColor<<db>> #1B5E20
+}
+
+participant "Aplicación" as APP <<backend>>
+participant "Redis (caché)" as CACHE <<cache>>
+participant "PostgreSQL" as DB <<db>>
+
+note over APP, DB #FFF3CD
+  FLUJO TEÓRICO. BIOPET no implementa write-through:
+  invalida con @CacheEvict(allEntries=true) en vez de
+  reescribir la caché en cada operación de escritura.
+end note
+
+APP -> CACHE : escribe el dato en caché
+APP -> DB : escribe el dato en la base de datos
+note right : Ambas escrituras ocurren de forma\nsíncrona, dentro de la misma operación.\nLa petición no termina hasta que\nlas dos confirman.
+DB --> APP : OK
+CACHE --> APP : OK
+APP --> APP : responde solo cuando\nambas escrituras terminaron
+
+@enduml

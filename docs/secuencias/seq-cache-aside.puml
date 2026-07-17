@@ -1,0 +1,62 @@
+@startuml seq-cache-aside
+title Secuencia real de BIOPET: Cache-Aside (GET /api/mascotas)
+
+skinparam backgroundColor #FFFFFF
+skinparam sequenceArrowThickness 1.5
+skinparam roundcorner 6
+skinparam maxMessageSize 220
+
+skinparam participant {
+  BackgroundColor<<frontend>> #6C3483
+  FontColor<<frontend>> #FFFFFF
+  BorderColor<<frontend>> #4A235A
+
+  BackgroundColor<<backend>> #1168BD
+  FontColor<<backend>> #FFFFFF
+  BorderColor<<backend>> #0B4884
+
+  BackgroundColor<<cache>> #C0392B
+  FontColor<<cache>> #FFFFFF
+  BorderColor<<cache>> #7B241C
+
+  BackgroundColor<<db>> #2E7D32
+  FontColor<<db>> #FFFFFF
+  BorderColor<<db>> #1B5E20
+}
+
+participant "Frontend\n(Angular 17.3)" as FE <<frontend>>
+participant "MascotaService\n(Spring Boot)" as SVC <<backend>>
+participant "Redis 7\ncache: mascotas-listado" as REDIS <<cache>>
+participant "PostgreSQL 16" as DB <<db>>
+
+FE -> SVC : GET /api/mascotas?page=0&size=50&sort=nombre,asc
+activate SVC
+
+SVC -> REDIS : GET mascotas:listado:page=0:size=50:\nsort=nombre,asc:nombre=:especie=:raza=
+activate REDIS
+
+alt Cache HIT
+  REDIS --> SVC : datos encontrados
+  deactivate REDIS
+  SVC --> FE : 200 OK (respuesta desde Redis)
+else Cache MISS
+  REDIS --> SVC : (vacío)
+  deactivate REDIS
+  SVC -> DB : SELECT mascotas ... (page, size, sort, filtros)
+  activate DB
+  DB --> SVC : resultados
+  deactivate DB
+  SVC -> REDIS : SET misma clave, valor, TTL=300s
+  activate REDIS
+  REDIS --> SVC : OK
+  deactivate REDIS
+  SVC --> FE : 200 OK (respuesta desde PostgreSQL)
+end
+deactivate SVC
+
+note over REDIS
+  TTL configurado: 300 segundos (5 min)
+  @Value("app.cache.mascotas-listado.ttl-seconds:300")
+end note
+
+@enduml
