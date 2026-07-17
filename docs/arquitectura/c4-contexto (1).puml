@@ -1,0 +1,37 @@
+@startuml c4-contexto
+title Diagrama de Contexto (C4 Nivel 1) - Sistema BIOPET
+
+skinparam backgroundColor #FFFFFF
+skinparam defaultTextAlignment center
+skinparam roundcorner 10
+skinparam shadowing false
+
+skinparam rectangle {
+  BackgroundColor<<system>> #1168BD
+  FontColor<<system>> #FFFFFF
+  BorderColor<<system>> #0B4884
+}
+
+skinparam actor {
+  BackgroundColor #08427B
+  FontColor #FFFFFF
+  BorderColor #052C50
+}
+
+actor "Usuario final\n<size:11><i>[Persona]</i></size>\n\nCliente de la clínica que\nconsulta y gestiona datos\nde sus mascotas." as usuario
+actor "Administrador\n<size:11><i>[Persona]</i></size>\n\nPersonal de BIOPET con\npermisos para gestionar\nel sistema." as admin
+
+rectangle "Sistema BIOPET\n<size:11><i>[Sistema de software]</i></size>\n\nSistema de gestión veterinaria:\nregistro y administración de\nmascotas, autenticación y caché.\n\nAngular 17.3 + Spring Boot 3.2.12 +\nJava 21 + PostgreSQL 16 + Redis 7" as sistemaBiopet <<system>>
+
+usuario --> sistemaBiopet : Usa\n<<HTTPS>>
+admin --> sistemaBiopet : Administra\n<<HTTPS>>
+
+legend right
+  |= Elemento |= Significado |
+  | <back:#08427B>   </back> | Persona (actor externo) |
+  | <back:#1168BD>   </back> | Sistema de software (caja negra) |
+  Sin sistemas externos: BIOPET no
+  integra servicios de terceros.
+endlegend
+
+@enduml
