@@ -1,0 +1,71 @@
+@startuml c4-componentes
+title Diagrama de Componentes (C4 Nivel 3) - Backend de BIOPET
+
+skinparam backgroundColor #FFFFFF
+skinparam defaultTextAlignment center
+skinparam roundcorner 8
+skinparam shadowing false
+skinparam nodesep 30
+skinparam ranksep 45
+
+skinparam rectangle {
+  BackgroundColor<<comp>> #1168BD
+  FontColor<<comp>> #FFFFFF
+  BorderColor<<comp>> #0B4884
+
+  BackgroundColor<<security>> #B7950B
+  FontColor<<security>> #FFFFFF
+  BorderColor<<security>> #7D6608
+
+  BackgroundColor<<db>> #2E7D32
+  FontColor<<db>> #FFFFFF
+  BorderColor<<db>> #1B5E20
+
+  BackgroundColor<<cache>> #C0392B
+  FontColor<<cache>> #FFFFFF
+  BorderColor<<cache>> #7B241C
+
+  BackgroundColor<<boundary>> #F5F5F5
+  BorderColor<<boundary>> #999999
+}
+
+actor "Frontend\nAngular 17.3" as frontend
+
+rectangle "Backend Spring Boot 3.2.12 (puerto 8080)" <<boundary>> {
+  rectangle "Filtro JWT\n<size:10><i>[Componente]</i></size>\n\nIntercepta cada petición\ny valida el token" as filtroJwt <<security>>
+
+  rectangle "Servicio JWT\n<size:10><i>[Componente]</i></size>\n\nGenera y valida tokens,\nconsulta blacklist" as servicioJwt <<security>>
+
+  rectangle "Controllers\n<size:10><i>[Componente]</i></size>\n\nReciben peticiones HTTP\nde mascotas y auth" as controllers <<comp>>
+
+  rectangle "Services\n<size:10><i>[Componente]</i></size>\n\nReglas de negocio,\ncache-aside" as services <<comp>>
+
+  rectangle "Repositories\n<size:10><i>[Componente: Spring Data JPA]</i></size>\n\nAcceso a datos" as repos <<comp>>
+
+  rectangle "Entidades JPA\n<size:10><i>[Componente]</i></size>\n\nMapeo objeto-relacional" as entidades <<comp>>
+}
+
+rectangle "PostgreSQL 16\n(puerto 5432)" as postgres <<db>>
+rectangle "Redis 7\n(puerto 6379)" as redis <<cache>>
+
+frontend --> filtroJwt : HTTPS / JSON
+filtroJwt --> servicioJwt : valida token
+filtroJwt --> controllers : deja pasar
+
+controllers --> services
+services --> repos
+repos --> entidades
+entidades --> postgres : JDBC
+
+services --> redis : cache-aside
+servicioJwt --> redis : consulta blacklist
+
+legend right
+  |= Color |= Elemento |
+  | <back:#B7950B>   </back> | Seguridad (JWT) |
+  | <back:#1168BD>   </back> | Componente de aplicación |
+  | <back:#2E7D32>   </back> | PostgreSQL (externo) |
+  | <back:#C0392B>   </back> | Redis (externo) |
+endlegend
+
+@enduml

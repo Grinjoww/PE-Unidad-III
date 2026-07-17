@@ -1,0 +1,63 @@
+@startuml c4-contenedores
+title Diagrama de Contenedores (C4 Nivel 2) - Sistema BIOPET
+
+skinparam backgroundColor #FFFFFF
+skinparam defaultTextAlignment center
+skinparam roundcorner 10
+skinparam shadowing false
+skinparam nodesep 50
+skinparam ranksep 60
+
+skinparam rectangle {
+  BackgroundColor<<frontend>> #6C3483
+  FontColor<<frontend>> #FFFFFF
+  BorderColor<<frontend>> #4A235A
+
+  BackgroundColor<<backend>> #1168BD
+  FontColor<<backend>> #FFFFFF
+  BorderColor<<backend>> #0B4884
+
+  BackgroundColor<<db>> #2E7D32
+  FontColor<<db>> #FFFFFF
+  BorderColor<<db>> #1B5E20
+
+  BackgroundColor<<cache>> #C0392B
+  FontColor<<cache>> #FFFFFF
+  BorderColor<<cache>> #7B241C
+
+  BackgroundColor<<boundary>> #F5F5F5
+  BorderColor<<boundary>> #999999
+}
+
+skinparam actor {
+  BackgroundColor #08427B
+  FontColor #FFFFFF
+  BorderColor #052C50
+}
+
+actor "Usuario final /\nAdministrador" as usuario
+
+rectangle "Sistema BIOPET" <<boundary>> {
+  rectangle "Frontend\n<size:10><i>[Contenedor: Angular 17.3]</i></size>\n\nInterfaz web para gestionar\nmascotas y usuarios.\n\nPuerto 4200" as frontend <<frontend>>
+
+  rectangle "Backend\n<size:10><i>[Contenedor: Spring Boot 3.2.12 / Java 21]</i></size>\n\nAPI REST: autenticación JWT,\nCRUD de mascotas, caché.\n\nPuerto 8080" as backend <<backend>>
+
+  rectangle "Base de datos\n<size:10><i>[Contenedor: PostgreSQL 16]</i></size>\n\nAlmacena usuarios y mascotas\nde forma persistente.\n\nPuerto 5432 (Docker)" as postgres <<db>>
+
+  rectangle "Caché\n<size:10><i>[Contenedor: Redis 7]</i></size>\n\nCaché cache-aside y\nblacklist de JWT.\n\nPuerto 6379" as redis <<cache>>
+}
+
+usuario --> frontend : Usa\n<<HTTPS>>
+frontend --> backend : Llama a la API\n<<HTTPS / JSON>>
+backend --> postgres : Lee y escribe\n<<JDBC>>
+backend --> redis : Cachea y valida\nblacklist\n<<Redis Protocol>>
+
+legend right
+  |= Color |= Elemento |
+  | <back:#6C3483>   </back> | Frontend |
+  | <back:#1168BD>   </back> | Backend |
+  | <back:#2E7D32>   </back> | Base de datos |
+  | <back:#C0392B>   </back> | Caché |
+endlegend
+
+@enduml
