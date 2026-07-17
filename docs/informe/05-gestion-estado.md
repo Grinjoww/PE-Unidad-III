@@ -91,7 +91,3 @@ Para BioPet, la combinación adecuada es la que ya está implementada: **JWT com
 
 [3] OWASP Foundation, "Session management cheat sheet," OWASP Cheat Sheet Series. [Online]. Available: https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html
 
-## Lo que falta actualizar cuando Jaime confirme evidencia final
-
-- Adjuntar la captura o el resultado real de `scripts/verificar-logout.ps1` (login → 200, `/api/auth/me` con cookie válida → 200, logout → 204, `/api/auth/me` reintentado con el token anterior → 401).
-- Confirmar el valor final de `security.jwt.expiration-ms` y `security.jwt.cookie.secure` en el entorno de despliegue (actualmente `3600000` ms y dependiente de la variable `JWT_COOKIE_SECURE`).
